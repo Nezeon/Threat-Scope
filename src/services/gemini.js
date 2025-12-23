@@ -23,6 +23,17 @@ export const generateActorProfile = async (actorName) => {
       const genAI = new GoogleGenerativeAI(API_KEY);
       const model = genAI.getGenerativeModel({ model: modelName });
 
+      // Knowledge Base Injection for recent/specific actors
+      const KNOWN_INTELLIGENCE = {
+        "storm-0940": {
+          origin: "China",
+          ttps: "Compromise of SOHO routers (TP-Link) to form 'CovertNetwork-1658' (Quad7) botnet. Highly evasive password spraying.",
+          cves: ["CVE-2023-50224 (TP-Link RCE)", "CVE-2025-9377 (TP-Link active exploit)"]
+        }
+      };
+
+      const knownData = KNOWN_INTELLIGENCE[actorName.toLowerCase()];
+
       const prompt = `
       Generate a threat actor profile for "${actorName}".
       
@@ -56,7 +67,15 @@ export const generateActorProfile = async (actorName) => {
       4. Fetch ALL known CVEs strictly associated with "${actorName}" (or its resolved alias). 
       5. The "actor_name" field in the JSON MUST be exactly "${actorName}".
       6. Ensure the response is valid JSON. Do not include markdown code blocks.
+
+      ${knownData ? `
+      CRITICAL INTELLIGENCE OVERRIDE (USE THIS DATA):
+      - Origin: ${knownData.origin}
+      - Key TTPs/Campaigns: ${knownData.ttps}
+      - MUST Include these CVEs: ${JSON.stringify(knownData.cves)}
+      ` : ""}
       `;
+
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
