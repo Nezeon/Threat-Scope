@@ -127,14 +127,35 @@ export const generateChatResponse = async (userMessage, contextActor) => {
 
   for (const modelName of modelsToTry) {
     try {
+      // 1. Fetch the official profile first to establish ground truth
+      // This ensures Chat Data == Dashboard Data
+      let profileData = null;
+      try {
+        // parallelize if needed, but sequential safeguards consistency
+        profileData = await generateActorProfile(contextActor);
+      } catch (err) {
+        console.warn("[Chat] Could not fetch verified profile:", err);
+      }
+
       const genAI = new GoogleGenerativeAI(API_KEY);
       const model = genAI.getGenerativeModel({ model: modelName });
 
       const prompt = `
       System: You are UNI5X, an elite cyber threat intelligence AI.
-      Context: User is analyzing threat actor "${contextActor}".
+      
+      VERIFIED INTELLIGENCE PROFILE (GROUND TRUTH):
+      ${profileData ? JSON.stringify(profileData, null, 2) : "Profile data currently unavailable. Rely on internal knowledge with caution."}
+
+      CRITICAL INSTRUCTIONS:
+      1. **Consistency**: You MUST align your answers with the "VERIFIED INTELLIGENCE PROFILE" above. 
+         - If the verification profile is available, use it as the absolute source of truth.
+      2. **Origin & Attribution Checks**: 
+         - **SPECIFIC OVERRIDE**: "Storm-0940" is definitively associated with **CHINA** (BlueCharlie/Mustang Panda). It is NOT associated with Belarus or TA503. If the user asks about Storm-0940, state it is a Chinese threat actor.
+         - Do not hallucinate attribution if unsure.
+      3. **Internal Alias Resolution**: If the actor name is an alias (e.g. Storm-0940), treat it as the resolved identity (e.g. BlueCharlie).
       
       User Query: "${userMessage}"
+      Context Actor: "${contextActor}"
       
       Response Guidelines:
       - Answer cleanly and professionally.
