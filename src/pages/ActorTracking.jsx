@@ -9,7 +9,7 @@ import { useActor } from '../context/ActorContext';
 import { useNavigate } from 'react-router-dom';
 
 const StatCard = ({ icon: Icon, label, value, color = "text-cyan-400" }) => (
-    <div className="bg-[#162032]/80 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-2 relative overflow-hidden group hover:border-cyan-500/30 transition-all min-h-[110px]">
+    <div className="bg-[#162032]/80 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-2 relative overflow-hidden group hover:border-cyan-500/30 transition-all h-full">
         <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
             <Icon size={48} />
         </div>
@@ -17,8 +17,7 @@ const StatCard = ({ icon: Icon, label, value, color = "text-cyan-400" }) => (
             <Icon size={14} className={color} />
             {label}
         </div>
-        {/* Changed from truncate to line-clamp/break-words for better visibility */}
-        <div className="text-sm lg:text-base font-medium text-slate-100 z-10 break-words leading-tight line-clamp-3">
+        <div className="text-sm lg:text-base font-medium text-slate-100 z-10 break-words leading-tight">
             {value || "Unknown"}
         </div>
     </div>

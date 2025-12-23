@@ -22,11 +22,18 @@ export const ActorProvider = ({ children }) => {
         return saved ? JSON.parse(saved) : DEFAULT_ACTORS;
     });
 
-    const [selectedActor, setSelectedActor] = useState("APT28");
+    const [selectedActor, setSelectedActor] = useState(() => {
+        const saved = localStorage.getItem('selected_actor');
+        return saved ? saved : "APT28";
+    });
 
     useEffect(() => {
         localStorage.setItem('threat_actors', JSON.stringify(actors));
     }, [actors]);
+
+    useEffect(() => {
+        localStorage.setItem('selected_actor', selectedActor);
+    }, [selectedActor]);
 
     const addActor = (name) => {
         if (!name) return;

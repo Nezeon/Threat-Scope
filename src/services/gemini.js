@@ -50,10 +50,12 @@ export const generateActorProfile = async (actorName) => {
       }
       
       IMPORTANT:
-      1. Fetch ALL known CVEs strictly associated with "${actorName}". Do not hallucinate. Verify the CVEs are linked to this specific actor.
-      2. If you are unsure, list fewer but accurate CVEs.
-      3. Ensure "actor_name" matches the requested name EXACTLY.
-      4. Ensure the response is valid JSON. Do not include markdown code blocks.
+      1. THIS IS CRITICAL: If you do not have specific, verifiable intelligence on exactly "${actorName}", return ONLY: { "error": "Unknown Data" }
+      2. INTERNAL ALIAS RESOLUTION: If the name is a vendor-specific alias (e.g., "Storm-0940", "Mint Sandstorm", etc.), INTERNALLY resolve it to its primary industry name (e.g., APT number, Chemical element) to fetch accurate data, BUT return the "actor_name" as "${actorName}".
+      3. VERACITY CHECK: Double-check the Origin. For example, Storm-0940 is associated with China. Do not hallucinate origins.
+      4. Fetch ALL known CVEs strictly associated with "${actorName}" (or its resolved alias). 
+      5. The "actor_name" field in the JSON MUST be exactly "${actorName}".
+      6. Ensure the response is valid JSON. Do not include markdown code blocks.
       `;
 
       const result = await model.generateContent(prompt);
@@ -75,7 +77,27 @@ export const generateActorProfile = async (actorName) => {
         cleanText = cleanText.substring(firstBrace, lastBrace + 1);
       }
 
-      return JSON.parse(cleanText);
+      const parsedData = JSON.parse(cleanText);
+
+      // STRICT VALIDATION
+      if (parsedData.error) {
+        throw new Error(`AI reported unknown actor: ${actorName}`);
+      }
+
+      const returnedName = parsedData.actor_name?.trim().toLowerCase();
+      const requestedName = actorName.trim().toLowerCase();
+
+      // Check if the returned name contains the requested name or vice versa, 
+      // but strict enough to avoid "Storm-0940" matching "APT 28" (no overlap).
+      // We'll use a strict check:
+      if (returnedName !== requestedName) {
+        console.warn(`[Gemini Service] Hallucination detected! Requested "${requestedName}" but got "${returnedName}". Discarding.`);
+        // If we have models left, this will behave as an error and try the next model. 
+        // If no models left, it will throw.
+        throw new Error(`Data mismatch: Requested ${actorName}, got ${parsedData.actor_name}`);
+      }
+
+      return parsedData;
 
     } catch (error) {
       console.warn(`[Gemini Service] Failed with model ${modelName}:`, error.message);
@@ -88,7 +110,7 @@ export const generateActorProfile = async (actorName) => {
     }
   }
 
-  throw new Error(lastError?.message || "Failed to generate profile. Please check your network or API key.");
+  throw new Error(lastError?.message || `Unable to find verifiable intelligence for "${actorName}".`);
 };
 
 export const generateChatResponse = async (userMessage, contextActor) => {
